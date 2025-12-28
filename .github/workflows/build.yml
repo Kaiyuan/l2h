@@ -59,26 +59,71 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract tag name
+        id: tag
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+          echo "Tag name: $TAG_NAME"
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
           path: artifacts
+          pattern: binaries-*
+          merge-multiple: true
 
       - name: Prepare release assets
         run: |
           mkdir -p release
-          find artifacts -name "l2h-*" -type f ! -name "*.sha256" -exec cp {} release/ \;
-          find artifacts -name "*.sha256" -exec cp {} release/ \;
+          # 复制所有二进制文件和校验文件
+          find artifacts -type f -name "l2h-*" -exec cp {} release/ \;
+          # 列出所有文件
+          echo "Release assets:"
+          ls -lh release/
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
+          tag_name: ${{ steps.tag.outputs.tag_name }}
+          name: Release ${{ steps.tag.outputs.tag_name }}
+          body: |
+            ## L2H ${{ steps.tag.outputs.tag_name }}
+            
+            ### 下载
+            
+            请根据您的系统架构下载对应的二进制文件：
+            
+            - **x86_64**: `l2h-s-x86_64`, `l2h-c-x86_64`
+            - **aarch64**: `l2h-s-aarch64`, `l2h-c-aarch64`
+            - **armv7**: `l2h-s-armv7`, `l2h-c-armv7`
+            
+            ### 安装
+            
+            使用一键安装脚本：
+            ```bash
+            curl -fsSL https://raw.githubusercontent.com/Kaiyuan/l2h/main/install.sh | bash
+            ```
+            
+            ### 校验
+            
+            下载后请使用对应的 `.sha256` 文件验证文件完整性：
+            ```bash
+            sha256sum -c l2h-s-*.sha256
+            sha256sum -c l2h-c-*.sha256
+            ```
           files: release/*
+          draft: false
+          prerelease: false
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
