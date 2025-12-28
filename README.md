@@ -1,4 +1,15 @@
 # l2h 项目说明
+
+## 快速开始
+
+### 一键安装
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Kaiyuan/l2h/main/install.sh | bash
+```
+
+详细安装说明请查看 [INSTALL.md](INSTALL.md)
+
 ## 软件大致说明
 服务器A部署网页，服务器B运行服务端并且设置指定端口，用户访问服务器A的网页后访客通过 WebRTC 连接到服务器B的服务端，从而实现网页访问服务器B运行的服务端设置端口的网页的功能。
 
