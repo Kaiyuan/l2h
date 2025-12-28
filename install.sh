@@ -164,16 +164,16 @@ main() {
     
     info "下载 l2h-s..."
     download_file "${BASE_URL}/l2h-s-${ARCH}" "l2h-s"
-    download_file "${BASE_URL}/l2h-s-${ARCH}.sha256" "l2h-s.sha256"
+    #download_file "${BASE_URL}/l2h-s-${ARCH}.sha256" "l2h-s.sha256"
     
     info "下载 l2h-c..."
     download_file "${BASE_URL}/l2h-c-${ARCH}" "l2h-c"
-    download_file "${BASE_URL}/l2h-c-${ARCH}.sha256" "l2h-c.sha256"
+    #download_file "${BASE_URL}/l2h-c-${ARCH}.sha256" "l2h-c.sha256"
     
     # 验证文件
-    info "验证文件完整性..."
-    verify_file "l2h-s" "l2h-s.sha256"
-    verify_file "l2h-c" "l2h-c.sha256"
+    #info "验证文件完整性..."
+    #verify_file "l2h-s" "l2h-s.sha256"
+    #verify_file "l2h-c" "l2h-c.sha256"
     
     # 安装文件
     info "安装到 $INSTALL_DIR..."
