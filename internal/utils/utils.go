@@ -14,18 +14,18 @@ func GenerateRandomString(length int) string {
 	if length <= 0 {
 		return ""
 	}
-	
+
 	// 计算需要的字节数，base64 编码会增加约 33% 的长度
 	byteLength := (length * 3) / 4
 	if byteLength < length {
 		byteLength = length
 	}
-	
+
 	bytes := make([]byte, byteLength)
 	if _, err := rand.Read(bytes); err != nil {
 		return ""
 	}
-	
+
 	encoded := base64.URLEncoding.EncodeToString(bytes)
 	if len(encoded) > length {
 		return encoded[:length]
@@ -66,7 +66,7 @@ func ValidatePath(path string) bool {
 	if path == "" {
 		return false
 	}
-	
+
 	// 路径不能包含特殊字符
 	invalidChars := []string{" ", "\\", "?", "#", "&", "=", "%"}
 	for _, char := range invalidChars {
@@ -74,12 +74,12 @@ func ValidatePath(path string) bool {
 			return false
 		}
 	}
-	
+
 	// 路径不能以 / 开头或结尾
 	if strings.HasPrefix(path, "/") || strings.HasSuffix(path, "/") {
 		return false
 	}
-	
+
 	return true
 }
 

@@ -1,4 +1,4 @@
-﻿// Package crypto 提供密码哈希和验证功能
+// Package crypto 提供密码哈希和验证功能
 package crypto
 
 import (

@@ -1,4 +1,4 @@
-﻿// Package servera 提供服务器A的数据库操作功能
+// Package servera 提供服务器A的数据库操作功能
 package servera
 
 import (

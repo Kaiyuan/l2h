@@ -26,7 +26,7 @@ func NewManager() *Manager {
 func (m *Manager) HandleOffer(offer string, path string) (string, error) {
 	// 生成连接ID
 	connID := generateConnectionID()
-	
+
 	m.mu.Lock()
 	m.connections[connID] = &Connection{
 		ID:     connID,
@@ -38,7 +38,7 @@ func (m *Manager) HandleOffer(offer string, path string) (string, error) {
 	// 这里应该实现真正的 WebRTC offer/answer 交换
 	// 为了简化，我们返回一个模拟的 answer
 	answer := generateAnswer(offer)
-	
+
 	return answer, nil
 }
 
@@ -62,4 +62,3 @@ func generateAnswer(offer string) string {
 	rand.Read(bytes)
 	return base64.URLEncoding.EncodeToString(bytes)
 }
-

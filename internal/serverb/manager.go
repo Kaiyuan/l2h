@@ -31,4 +31,3 @@ func (m *Manager) DeleteBinding(id int) error {
 func (m *Manager) SetServerInfo(serverURL, apiKey string) error {
 	return m.db.SetServerInfo(serverURL, apiKey)
 }
-

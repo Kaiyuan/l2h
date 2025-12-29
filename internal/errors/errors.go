@@ -1,4 +1,4 @@
-﻿// Package errors 提供统一的错误处理功能
+// Package errors 提供统一的错误处理功能
 package errors
 
 import (
@@ -80,18 +80,18 @@ func NewWithDetails(code ErrorCode, message, details string) *AppError {
 
 // 常用错误
 var (
-	ErrInvalidRequest   = New(ErrCodeInvalidRequest, "无效的请求")
-	ErrNotFound         = New(ErrCodeNotFound, "资源未找到")
-	ErrUnauthorized     = New(ErrCodeUnauthorized, "未授权")
-	ErrForbidden        = New(ErrCodeForbidden, "禁止访问")
-	ErrInternalServer   = New(ErrCodeInternalServer, "服务器内部错误")
-	ErrDatabaseError    = New(ErrCodeDatabaseError, "数据库错误")
-	ErrRecordNotFound   = New(ErrCodeRecordNotFound, "记录未找到")
-	ErrDuplicateEntry   = New(ErrCodeDuplicateEntry, "记录已存在")
+	ErrInvalidRequest     = New(ErrCodeInvalidRequest, "无效的请求")
+	ErrNotFound           = New(ErrCodeNotFound, "资源未找到")
+	ErrUnauthorized       = New(ErrCodeUnauthorized, "未授权")
+	ErrForbidden          = New(ErrCodeForbidden, "禁止访问")
+	ErrInternalServer     = New(ErrCodeInternalServer, "服务器内部错误")
+	ErrDatabaseError      = New(ErrCodeDatabaseError, "数据库错误")
+	ErrRecordNotFound     = New(ErrCodeRecordNotFound, "记录未找到")
+	ErrDuplicateEntry     = New(ErrCodeDuplicateEntry, "记录已存在")
 	ErrInvalidCredentials = New(ErrCodeInvalidCredentials, "无效的凭据")
-	ErrTokenExpired     = New(ErrCodeTokenExpired, "令牌已过期")
-	ErrAPIKeyInvalid    = New(ErrCodeAPIKeyInvalid, "无效的 API Key")
-	ErrAPIKeyExpired    = New(ErrCodeAPIKeyExpired, "API Key 已过期")
-	ErrConfigError      = New(ErrCodeConfigError, "配置错误")
-	ErrConfigNotFound   = New(ErrCodeConfigNotFound, "配置文件未找到")
+	ErrTokenExpired       = New(ErrCodeTokenExpired, "令牌已过期")
+	ErrAPIKeyInvalid      = New(ErrCodeAPIKeyInvalid, "无效的 API Key")
+	ErrAPIKeyExpired      = New(ErrCodeAPIKeyExpired, "API Key 已过期")
+	ErrConfigError        = New(ErrCodeConfigError, "配置错误")
+	ErrConfigNotFound     = New(ErrCodeConfigNotFound, "配置文件未找到")
 )
