@@ -25,6 +25,9 @@ func main() {
 		server        = flag.String("s", "", "设置服务器A的地址和API key，格式: server.com:apikey")
 		port          = flag.Int("port", 55055, "管理页面端口")
 		dataDir       = flag.String("data-dir", "./data", "数据目录")
+		daemon        = flag.Bool("daemon", false, "后台运行模式（仅Linux）")
+		foreground    = flag.Bool("foreground", false, "强制前台运行")
+		pidFile       = flag.String("pid-file", "", "PID文件路径（后台运行时使用）")
 	)
 
 	flag.Parse()
@@ -32,6 +35,28 @@ func main() {
 	if *help {
 		printHelp()
 		os.Exit(0)
+	}
+
+	// 确保数据目录存在
+	if err := os.MkdirAll(*dataDir, 0755); err != nil {
+		fmt.Fprintf(os.Stderr, "创建数据目录失败: %v\n", err)
+		os.Exit(1)
+	}
+
+	// 数据库文件路径
+	dbPath := filepath.Join(*dataDir, "l2h-c.db")
+
+	// 检查是否首次运行
+	isFirstRun := !fileExists(dbPath)
+
+	// 如果需要后台运行且不是前台模式
+	if *daemon && !*foreground {
+		if err := utils.Daemonize(*pidFile); err != nil {
+			fmt.Fprintf(os.Stderr, "后台运行失败: %v\n", err)
+			os.Exit(1)
+		}
+		// 守护进程已启动，父进程在这里会退出
+		// 子进程继续执行下面的代码
 	}
 
 	// 加载配置（简化处理，主要使用命令行参数）
@@ -65,13 +90,20 @@ func main() {
 		appLogger = logger.New(logLevel, os.Stdout, "")
 	}
 
+	// 如果是首次运行，启动初始化向导
+	if isFirstRun {
+		fmt.Println()
+		if err := runInitWizard(*dataDir, dbPath, *port); err != nil {
+			appLogger.Fatal("初始化失败: %v", err)
+		}
+		// 初始化完成后，如果用户只是想初始化而不是立即启动服务，可以退出
+		// 这里我们继续启动服务
+	}
+
 	// 确保数据目录存在
 	if err := os.MkdirAll(*dataDir, 0755); err != nil {
 		appLogger.Fatal("创建数据目录失败: %v", err)
 	}
-
-	// 数据库文件路径
-	dbPath := filepath.Join(*dataDir, "l2h-c.db")
 
 	manager := serverb.NewManager(dbPath)
 
@@ -195,5 +227,11 @@ func printHelp() {
 	fmt.Println("  -s server.com:apikey 设置服务器A的地址和API key")
 	fmt.Println("  --port              管理页面端口 (默认: 55055)")
 	fmt.Println("  --data-dir          数据目录 (默认: ./data)")
+	fmt.Println("  --daemon            后台运行模式（仅Linux）")
+	fmt.Println("  --foreground        强制前台运行")
+	fmt.Println("  --pid-file          PID文件路径（后台运行时使用）")
+	fmt.Println()
+	fmt.Println("首次运行:")
+	fmt.Println("  首次运行时会启动初始化向导，引导您完成基本配置。")
 	fmt.Println()
 }

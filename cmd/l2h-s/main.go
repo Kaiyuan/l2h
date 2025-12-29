@@ -9,6 +9,7 @@ import (
 	"l2h/internal/config"
 	"l2h/internal/logger"
 	"l2h/internal/servera"
+	"l2h/internal/utils"
 )
 
 func main() {
@@ -17,6 +18,9 @@ func main() {
 		port       = flag.Int("port", 55080, "服务器端口")
 		dataDir    = flag.String("data-dir", "./data", "数据目录")
 		configFile = flag.String("config", "", "配置文件路径")
+		daemon     = flag.Bool("daemon", false, "后台运行模式（仅Linux）")
+		foreground = flag.Bool("foreground", false, "强制前台运行")
+		pidFile    = flag.String("pid-file", "", "PID文件路径（后台运行时使用）")
 	)
 
 	flag.Parse()
@@ -43,6 +47,16 @@ func main() {
 
 	// 检查是否首次运行
 	isFirstRun := !fileExists(dbPath) && !fileExists(configPath)
+
+	// 如果需要后台运行且不是前台模式
+	if *daemon && !*foreground {
+		if err := utils.Daemonize(*pidFile); err != nil {
+			fmt.Fprintf(os.Stderr, "后台运行失败: %v\n", err)
+			os.Exit(1)
+		}
+		// 守护进程已启动，父进程在这里会退出
+		// 子进程继续执行下面的代码
+	}
 
 	var cfg *config.Config
 	var err error
