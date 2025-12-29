@@ -99,4 +99,3 @@ func extractAPIKey(r *http.Request) string {
 	// 从 Query 参数获取
 	return r.URL.Query().Get("api_key")
 }
-

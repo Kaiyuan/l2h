@@ -1,3 +1,4 @@
+﻿// Package config 提供配置文件加载和管理功能
 package config
 
 import (
@@ -7,28 +8,32 @@ import (
 	"path/filepath"
 )
 
+// Config 配置结构体
 type Config struct {
 	ServerA ServerAConfig `json:"server_a,omitempty"`
 	ServerB ServerBConfig `json:"server_b,omitempty"`
 	Logging LoggingConfig `json:"logging,omitempty"`
 }
 
+// ServerAConfig 服务器A配置结构体
 type ServerAConfig struct {
-	Port      int    `json:"port"`
-	DBPath    string `json:"db_path"`
-	LogFile   string `json:"log_file,omitempty"`
-	LogLevel  string `json:"log_level,omitempty"`
+	Port     int    `json:"port"`
+	DBPath   string `json:"db_path"`
+	LogFile  string `json:"log_file,omitempty"`
+	LogLevel string `json:"log_level,omitempty"`
 }
 
+// ServerBConfig 服务器B配置结构体
 type ServerBConfig struct {
-	Port      int    `json:"port"`
-	DBPath    string `json:"db_path"`
-	LogFile   string `json:"log_file,omitempty"`
-	LogLevel  string `json:"log_level,omitempty"`
+	Port     int    `json:"port"`
+	DBPath   string `json:"db_path"`
+	LogFile  string `json:"log_file,omitempty"`
+	LogLevel string `json:"log_level,omitempty"`
 }
 
+// LoggingConfig 日志配置结构体
 type LoggingConfig struct {
-	Level  string `json:"level,omitempty"`  // DEBUG, INFO, WARN, ERROR, FATAL
+	Level  string `json:"level,omitempty"`
 	File   string `json:"file,omitempty"`
 	Stdout bool   `json:"stdout,omitempty"`
 }
@@ -42,7 +47,6 @@ func Load(configPath string) (*Config, error) {
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			// 如果文件不存在，创建默认配置
 			cfg := Default()
 			if err := Save(configPath, cfg); err != nil {
 				return nil, fmt.Errorf("创建默认配置失败: %w", err)
@@ -62,7 +66,6 @@ func Load(configPath string) (*Config, error) {
 
 // Save 保存配置到文件
 func Save(configPath string, cfg *Config) error {
-	// 确保目录存在
 	dir := filepath.Dir(configPath)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return fmt.Errorf("创建配置目录失败: %w", err)
@@ -102,7 +105,7 @@ func Default() *Config {
 	}
 }
 
-// GetLogLevel 将字符串转换为日志级别
+// GetLogLevel 将字符串转换为日志级别数值
 func GetLogLevel(level string) int {
 	switch level {
 	case "DEBUG":
@@ -116,7 +119,6 @@ func GetLogLevel(level string) int {
 	case "FATAL":
 		return 4
 	default:
-		return 1 // 默认 INFO
+		return 1
 	}
 }
-

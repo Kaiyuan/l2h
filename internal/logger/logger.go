@@ -1,3 +1,4 @@
+﻿// Package logger 提供结构化的日志记录功能
 package logger
 
 import (
@@ -9,6 +10,7 @@ import (
 	"time"
 )
 
+// Level 日志级别类型
 type Level int
 
 const (
@@ -27,6 +29,7 @@ var levelNames = map[Level]string{
 	FATAL: "FATAL",
 }
 
+// Logger 日志记录器结构体
 type Logger struct {
 	level  Level
 	logger *log.Logger
@@ -46,7 +49,6 @@ func New(level Level, output io.Writer, logFile string) *Logger {
 
 	var file *os.File
 	if logFile != "" {
-		// 确保日志目录存在
 		dir := filepath.Dir(logFile)
 		if err := os.MkdirAll(dir, 0755); err == nil {
 			f, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
@@ -90,22 +92,27 @@ func (l *Logger) log(level Level, format string, args ...interface{}) {
 	l.logger.Printf("%s%s", prefix, message)
 }
 
+// Debug 记录调试级别的日志
 func (l *Logger) Debug(format string, args ...interface{}) {
 	l.log(DEBUG, format, args...)
 }
 
+// Info 记录信息级别的日志
 func (l *Logger) Info(format string, args ...interface{}) {
 	l.log(INFO, format, args...)
 }
 
+// Warn 记录警告级别的日志
 func (l *Logger) Warn(format string, args ...interface{}) {
 	l.log(WARN, format, args...)
 }
 
+// Error 记录错误级别的日志
 func (l *Logger) Error(format string, args ...interface{}) {
 	l.log(ERROR, format, args...)
 }
 
+// Fatal 记录致命级别的日志并退出程序
 func (l *Logger) Fatal(format string, args ...interface{}) {
 	l.log(FATAL, format, args...)
 	os.Exit(1)
@@ -136,14 +143,13 @@ func Fatal(format string, args ...interface{}) {
 	defaultLogger.Fatal(format, args...)
 }
 
-// NewFileLogger 创建文件日志记录器
+// NewFileLogger 创建文件日志记录器（带时间戳文件名）
 func NewFileLogger(level Level, logFile string) (*Logger, error) {
 	dir := filepath.Dir(logFile)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return nil, fmt.Errorf("创建日志目录失败: %w", err)
 	}
 
-	// 添加时间戳到日志文件名
 	ext := filepath.Ext(logFile)
 	base := logFile[:len(logFile)-len(ext)]
 	timestamp := time.Now().Format("20060102-150405")
@@ -163,4 +169,3 @@ func NewFileLogger(level Level, logFile string) (*Logger, error) {
 		file:   file,
 	}, nil
 }
-

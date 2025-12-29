@@ -1,3 +1,4 @@
+﻿// Package errors 提供统一的错误处理功能
 package errors
 
 import (
@@ -9,7 +10,6 @@ import (
 type ErrorCode int
 
 const (
-	// 通用错误
 	ErrCodeUnknown ErrorCode = iota + 1000
 	ErrCodeInvalidRequest
 	ErrCodeNotFound
@@ -17,23 +17,20 @@ const (
 	ErrCodeForbidden
 	ErrCodeInternalServer
 
-	// 数据库错误
 	ErrCodeDatabaseError ErrorCode = iota + 2000
 	ErrCodeRecordNotFound
 	ErrCodeDuplicateEntry
 
-	// 认证错误
 	ErrCodeInvalidCredentials ErrorCode = iota + 3000
 	ErrCodeTokenExpired
 	ErrCodeAPIKeyInvalid
 	ErrCodeAPIKeyExpired
 
-	// 配置错误
 	ErrCodeConfigError ErrorCode = iota + 4000
 	ErrCodeConfigNotFound
 )
 
-// AppError 应用错误
+// AppError 应用错误结构体
 type AppError struct {
 	Code    ErrorCode `json:"code"`
 	Message string    `json:"message"`
@@ -98,4 +95,3 @@ var (
 	ErrConfigError      = New(ErrCodeConfigError, "配置错误")
 	ErrConfigNotFound   = New(ErrCodeConfigNotFound, "配置文件未找到")
 )
-
