@@ -9,13 +9,14 @@ import (
 	"strings"
 
 	"l2h/internal/crypto"
+	"l2h/internal/utils"
 	"l2h/internal/webrtc"
 )
 
 type Server struct {
-	port     int
-	db       *Database
-	webrtc   *webrtc.Manager
+	port       int
+	db         *Database
+	webrtc     *webrtc.Manager
 	configFile string
 }
 
@@ -26,9 +27,9 @@ func NewServer(port int, dbPath string, configFile string) *Server {
 	}
 
 	return &Server{
-		port:     port,
-		db:       db,
-		webrtc:   webrtc.NewManager(),
+		port:       port,
+		db:         db,
+		webrtc:     webrtc.NewManager(),
 		configFile: configFile,
 	}
 }
@@ -119,41 +120,41 @@ func (s *Server) handleAPI(w http.ResponseWriter, r *http.Request) {
 	case path == "auth" && r.Method == "POST":
 		s.handleAuth(w, r)
 	default:
-		writeError(w, http.StatusNotFound, "Not found")
+		utils.WriteError(w, http.StatusNotFound, "Not found")
 	}
 }
 
 func (s *Server) handleGetSettings(w http.ResponseWriter, r *http.Request) {
 	settings, err := s.db.GetSettings()
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		utils.WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	writeJSON(w, http.StatusOK, settings)
+	utils.WriteJSON(w, http.StatusOK, settings)
 }
 
 func (s *Server) handleSetSettings(w http.ResponseWriter, r *http.Request) {
 	var settings Settings
 	if err := json.NewDecoder(r.Body).Decode(&settings); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		utils.WriteError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	if err := s.db.SetSettings(&settings); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		utils.WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	utils.WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
 func (s *Server) handleGetPaths(w http.ResponseWriter, r *http.Request) {
 	paths, err := s.db.GetPaths()
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		utils.WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	writeJSON(w, http.StatusOK, paths)
+	utils.WriteJSON(w, http.StatusOK, paths)
 }
 
 func (s *Server) handleAddPath(w http.ResponseWriter, r *http.Request) {
@@ -163,16 +164,16 @@ func (s *Server) handleAddPath(w http.ResponseWriter, r *http.Request) {
 		ServerBPort int    `json:"server_b_port"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		utils.WriteError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	if err := s.db.AddPath(req.Path, req.Password, req.ServerBPort); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		utils.WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	utils.WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
 func (s *Server) handleDeletePath(w http.ResponseWriter, r *http.Request) {
@@ -180,60 +181,60 @@ func (s *Server) handleDeletePath(w http.ResponseWriter, r *http.Request) {
 	path := strings.TrimPrefix(r.URL.Path, "/api/paths/")
 	var id int
 	if _, err := fmt.Sscanf(path, "%d", &id); err != nil {
-		writeError(w, http.StatusBadRequest, "Invalid ID")
+		utils.WriteError(w, http.StatusBadRequest, "Invalid ID")
 		return
 	}
 
 	if err := s.db.DeletePath(id); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		utils.WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	utils.WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
 func (s *Server) handleGetAPIKeys(w http.ResponseWriter, r *http.Request) {
 	keys, err := s.db.GetAPIKeys()
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		utils.WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	writeJSON(w, http.StatusOK, keys)
+	utils.WriteJSON(w, http.StatusOK, keys)
 }
 
 func (s *Server) handleGenerateAPIKey(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		Name         string `json:"name"`
+		Name          string `json:"name"`
 		ExpiresInDays int    `json:"expires_in_days"` // 0 表示永不过期
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		utils.WriteError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	key, err := s.db.GenerateAPIKey(req.Name, req.ExpiresInDays)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		utils.WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]string{"key": key})
+	utils.WriteJSON(w, http.StatusOK, map[string]string{"key": key})
 }
 
 func (s *Server) handleDeleteAPIKey(w http.ResponseWriter, r *http.Request) {
 	path := strings.TrimPrefix(r.URL.Path, "/api/api-keys/")
 	var id int
 	if _, err := fmt.Sscanf(path, "%d", &id); err != nil {
-		writeError(w, http.StatusBadRequest, "Invalid ID")
+		utils.WriteError(w, http.StatusBadRequest, "Invalid ID")
 		return
 	}
 
 	if err := s.db.DeleteAPIKey(id); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		utils.WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	utils.WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
 func (s *Server) handleWebRTCOffer(w http.ResponseWriter, r *http.Request) {
@@ -242,18 +243,18 @@ func (s *Server) handleWebRTCOffer(w http.ResponseWriter, r *http.Request) {
 		Path  string `json:"path"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		utils.WriteError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	// 处理 WebRTC offer
 	answer, err := s.webrtc.HandleOffer(req.Offer, req.Path)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		utils.WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]string{"answer": answer})
+	utils.WriteJSON(w, http.StatusOK, map[string]string{"answer": answer})
 }
 
 func (s *Server) handleAuth(w http.ResponseWriter, r *http.Request) {
@@ -262,13 +263,13 @@ func (s *Server) handleAuth(w http.ResponseWriter, r *http.Request) {
 		Password string `json:"password"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		utils.WriteError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	dbPath, err := s.db.GetPathByPath(req.Path)
 	if err != nil || dbPath == nil {
-		writeError(w, http.StatusNotFound, "Path not found")
+		utils.WriteError(w, http.StatusNotFound, "Path not found")
 		return
 	}
 
@@ -291,7 +292,7 @@ func (s *Server) handleAuth(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !valid {
-		writeError(w, http.StatusUnauthorized, "Invalid password")
+		utils.WriteError(w, http.StatusUnauthorized, "Invalid password")
 		return
 	}
 
@@ -304,7 +305,7 @@ func (s *Server) handleAuth(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 	})
 
-	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	utils.WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
 func (s *Server) serveIndexPage(w http.ResponseWriter, r *http.Request) {
@@ -423,4 +424,3 @@ func (s *Server) handleWebRTCPath(w http.ResponseWriter, r *http.Request, path s
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Write([]byte(html))
 }
-

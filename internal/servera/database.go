@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"l2h/internal/crypto"
+	"l2h/internal/utils"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -209,7 +210,7 @@ type APIKey struct {
 
 // GenerateAPIKey 生成新的 API Key
 func (d *Database) GenerateAPIKey(name string, expiresInDays int) (string, error) {
-	key := generateRandomString(32)
+	key := utils.GenerateRandomString(32)
 
 	var expiresAt interface{}
 	if expiresInDays > 0 {

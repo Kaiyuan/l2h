@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"l2h/internal/crypto"
+	"l2h/internal/utils"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -79,7 +80,7 @@ func (d *Database) GetAdminInfo() (*AdminInfo, error) {
 	if err == sql.ErrNoRows {
 		// 如果没有设置，创建默认管理员
 		defaultUser := "admin"
-		defaultPass := generateRandomString(16)
+		defaultPass := utils.GenerateRandomString(16)
 		if err := d.SetAdminInfo(defaultUser, defaultPass); err != nil {
 			return nil, err
 		}
@@ -220,4 +221,3 @@ func (d *Database) SetServerInfo(serverURL, apiKey string) error {
 		serverURL, apiKey)
 	return err
 }
-

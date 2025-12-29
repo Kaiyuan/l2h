@@ -3,6 +3,8 @@ package servera
 import (
 	"net/http"
 	"strings"
+
+	"l2h/internal/utils"
 )
 
 // requireAPIKey 中间件：验证 API Key
@@ -15,19 +17,19 @@ func (s *Server) requireAPIKey(next http.HandlerFunc) http.HandlerFunc {
 		}
 
 		if apiKey == "" {
-			writeError(w, http.StatusUnauthorized, "API Key required")
+			utils.WriteError(w, http.StatusUnauthorized, "API Key required")
 			return
 		}
 
 		// 验证 API Key
 		valid, err := s.db.ValidateAPIKey(apiKey)
 		if err != nil {
-			writeError(w, http.StatusInternalServerError, err.Error())
+			utils.WriteError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 
 		if !valid {
-			writeError(w, http.StatusUnauthorized, "Invalid or expired API Key")
+			utils.WriteError(w, http.StatusUnauthorized, "Invalid or expired API Key")
 			return
 		}
 
@@ -41,20 +43,20 @@ func (s *Server) requireAuth(next http.HandlerFunc) http.HandlerFunc {
 		// 检查 session cookie
 		sessionCookie, err := r.Cookie("l2h_session")
 		if err != nil {
-			writeError(w, http.StatusUnauthorized, "Authentication required")
+			utils.WriteError(w, http.StatusUnauthorized, "Authentication required")
 			return
 		}
 
 		// 验证 session（这里简化处理，实际应该使用 JWT 或 session store）
 		settings, err := s.db.GetSettings()
 		if err != nil || settings == nil {
-			writeError(w, http.StatusInternalServerError, "Settings not configured")
+			utils.WriteError(w, http.StatusInternalServerError, "Settings not configured")
 			return
 		}
 
 		// 简单的 session 验证（实际应该使用更安全的方式）
 		if sessionCookie.Value == "" {
-			writeError(w, http.StatusUnauthorized, "Invalid session")
+			utils.WriteError(w, http.StatusUnauthorized, "Invalid session")
 			return
 		}
 

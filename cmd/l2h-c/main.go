@@ -12,6 +12,7 @@ import (
 	"l2h/internal/config"
 	"l2h/internal/logger"
 	"l2h/internal/serverb"
+	"l2h/internal/utils"
 )
 
 func main() {
@@ -116,8 +117,13 @@ func main() {
 			password = parts[1]
 		}
 
+		// 验证路径格式
+		if !utils.ValidatePath(path) {
+			appLogger.Fatal("路径格式无效，路径不能包含空格或特殊字符，不能以 / 开头或结尾")
+		}
+
 		// 检查敏感单词
-		if containsSensitiveWord(path) {
+		if utils.ContainsSensitiveWord(path) {
 			appLogger.Fatal("路径包含敏感单词，禁止使用")
 		}
 
@@ -132,6 +138,11 @@ func main() {
 		portNum, err := strconv.Atoi(portStr)
 		if err != nil {
 			appLogger.Fatal("无效的端口号: %v", err)
+		}
+
+		// 验证端口号
+		if !utils.ValidatePort(portNum) {
+			appLogger.Fatal("端口号必须在 1-65535 之间")
 		}
 
 		if err := manager.AddBinding(path, portNum, password); err != nil {
@@ -186,19 +197,3 @@ func printHelp() {
 	fmt.Println("  --data-dir          数据目录 (默认: ./data)")
 	fmt.Println()
 }
-
-func containsSensitiveWord(path string) bool {
-	sensitiveWords := []string{
-		"admin", "administrator", "root", "system", "config",
-		"api", "internal", "private", "secret", "password",
-		"login", "logout", "auth", "token", "key",
-	}
-	pathLower := strings.ToLower(path)
-	for _, word := range sensitiveWords {
-		if strings.Contains(pathLower, word) {
-			return true
-		}
-	}
-	return false
-}
-

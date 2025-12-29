@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"l2h/internal/utils"
 	"l2h/internal/webrtc"
 )
 
@@ -69,17 +70,17 @@ func (s *Server) handleAPI(w http.ResponseWriter, r *http.Request) {
 	case path == "webrtc/answer" && r.Method == "POST":
 		s.handleWebRTCAnswer(w, r)
 	default:
-		writeError(w, http.StatusNotFound, "Not found")
+		utils.WriteError(w, http.StatusNotFound, "Not found")
 	}
 }
 
 func (s *Server) handleGetBindings(w http.ResponseWriter, r *http.Request) {
 	bindings, err := s.db.GetBindings()
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		utils.WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	writeJSON(w, http.StatusOK, bindings)
+	utils.WriteJSON(w, http.StatusOK, bindings)
 }
 
 func (s *Server) handleAddBinding(w http.ResponseWriter, r *http.Request) {
@@ -89,32 +90,32 @@ func (s *Server) handleAddBinding(w http.ResponseWriter, r *http.Request) {
 		Password string `json:"password"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		utils.WriteError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	if err := s.db.AddBinding(req.Path, req.Port, req.Password); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		utils.WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	utils.WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
 func (s *Server) handleDeleteBinding(w http.ResponseWriter, r *http.Request) {
 	path := strings.TrimPrefix(r.URL.Path, "/api/bindings/")
 	var id int
 	if _, err := fmt.Sscanf(path, "%d", &id); err != nil {
-		writeError(w, http.StatusBadRequest, "Invalid ID")
+		utils.WriteError(w, http.StatusBadRequest, "Invalid ID")
 		return
 	}
 
 	if err := s.db.DeleteBinding(id); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		utils.WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	utils.WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
 func (s *Server) handleWebRTCAnswer(w http.ResponseWriter, r *http.Request) {
@@ -123,12 +124,12 @@ func (s *Server) handleWebRTCAnswer(w http.ResponseWriter, r *http.Request) {
 		Path   string `json:"path"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		utils.WriteError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	// 处理 WebRTC answer
-	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	utils.WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
 func (s *Server) serveAdminPage(w http.ResponseWriter, r *http.Request) {
@@ -208,4 +209,3 @@ func (s *Server) handleWebRTCRequest(w http.ResponseWriter, r *http.Request, pat
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Write([]byte(html))
 }
-
