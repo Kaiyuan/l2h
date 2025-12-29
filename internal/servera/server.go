@@ -1,8 +1,11 @@
 package servera
 
 import (
+	"embed"
 	"encoding/json"
 	"fmt"
+	"io"
+	"io/fs"
 	"log"
 	"net/http"
 	"strconv"
@@ -12,6 +15,9 @@ import (
 	"l2h/internal/utils"
 	"l2h/internal/webrtc"
 )
+
+//go:embed all:static
+var adminFS embed.FS
 
 type Server struct {
 	port       int
@@ -326,47 +332,81 @@ func (s *Server) serveIndexPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) serveAdminPage(w http.ResponseWriter, r *http.Request) {
-	// 这里应该返回使用 PrimeVue V4 的管理界面
-	// 为了简化，先返回一个基础的管理页面
-	html := `<!DOCTYPE html>
-<html>
-<head>
-	<title>L2H 管理后台</title>
-	<meta charset="utf-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script>
-	<script src="https://unpkg.com/primevue@^4/core/core.min.js"></script>
-	<link rel="stylesheet" href="https://unpkg.com/primevue@^4/themes/aura-light-blue/theme.css" />
-</head>
-<body>
-	<div id="app">
-		<h1>L2H 管理后台</h1>
-		<!-- 这里应该使用 PrimeVue 组件构建完整的管理界面 -->
-	</div>
-	<script>
-		const { createApp } = Vue;
-		createApp({
-			data() {
-				return {
-					settings: {},
-					paths: [],
-					apiKeys: []
-				}
-			},
-			mounted() {
-				this.loadData();
-			},
-			methods: {
-				async loadData() {
-					// 加载设置、路径、API密钥等数据
-				}
-			}
-		}).mount('#app');
-	</script>
-</body>
-</html>`
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Write([]byte(html))
+	// 获取 dist 子目录
+	distFS, err := fs.Sub(adminFS, "static")
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, "Failed to load admin assets")
+		return
+	}
+
+	// 处理请求路径
+	// r.URL.Path 是完整的路径，例如 /admin/assets/main.css
+	// 我们需要去掉 /admin 前缀（假设 adminPath 是 admin）
+	// 但是这里我们是在 handleRoot 中调用的，handleRoot 已经解析了 path
+
+	// 为了简单起见，我们直接看 accept header 或者 path 后缀
+	// 如果请求的是静态资源 (assets/*)，直接服务
+	// 否则返回 index.html (SPA)
+
+	settings, _ := s.db.GetSettings()
+	adminPath := "admin"
+	if settings != nil {
+		adminPath = settings.AdminPath
+	}
+
+	// 构建相对于 adminPath 的路径
+	// r.URL.Path: /admin/login -> rel: /login
+	// r.URL.Path: /admin/assets/main.css -> rel: /assets/main.css
+
+	// 注意：handleRoot 里面 path = strings.TrimPrefix(r.URL.Path, "/")
+	// 且 logic 是: if path == settings.AdminPath
+	// 这意味着只有精确匹配 /admin 时才会调用 serveAdminPage
+	// 这对于 SPA 是不够的，因为 SPA 有子路由 /admin/login, /admin/assets/...
+
+	// 目前 handleRoot 的逻辑：
+	// path := strings.TrimPrefix(r.URL.Path, "/")
+	// if path == settings.AdminPath { serveAdminPage }
+
+	// 这意味着 /admin/foo 不会匹配！
+	// 后端的 handleRoot 需要修改以支持 /admin/* 前缀匹配。
+
+	// 鉴于 handleRoot 已经很大，我们先修改 serveAdminPage，稍后修改 handleRoot 或者路由逻辑。
+	// 这里假设 serveAdminPage 接收到的 r 是针对 /admin/* 的请求。
+
+	fpath := r.URL.Path
+	// 移除 /admin 前缀
+	if strings.HasPrefix(fpath, "/"+adminPath) {
+		fpath = strings.TrimPrefix(fpath, "/"+adminPath)
+	}
+
+	// 如果是空或 /，由 index.html 处理
+	if fpath == "" || fpath == "/" {
+		fpath = "index.html"
+	}
+
+	// 尝试打开文件
+	f, err := distFS.Open(strings.TrimPrefix(fpath, "/"))
+	if err != nil {
+		// 文件不存在，如果是 assets，返回 404
+		if strings.HasPrefix(fpath, "/assets/") {
+			http.NotFound(w, r)
+			return
+		}
+		// 否则返回 index.html (SPA history mode)
+		fpath = "index.html"
+		f, err = distFS.Open("index.html")
+		if err != nil {
+			utils.WriteError(w, http.StatusInternalServerError, "Admin interface not found")
+			return
+		}
+	}
+	defer f.Close()
+
+	// 获取文件信息以设置 Content-Type
+	stat, _ := f.Stat()
+
+	// 使用 http.ServeContent 服务文件
+	http.ServeContent(w, r, fpath, stat.ModTime(), f.(io.ReadSeeker))
 }
 
 func (s *Server) servePasswordPage(w http.ResponseWriter, r *http.Request, path string) {
