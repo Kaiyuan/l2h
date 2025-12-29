@@ -60,7 +60,7 @@ func (s *Server) handleRoot(w http.ResponseWriter, r *http.Request) {
 	// 检查是否是管理路径
 	settings, err := s.db.GetSettings()
 	if err == nil && settings != nil {
-		if path == settings.AdminPath {
+		if path == settings.AdminPath || strings.HasPrefix(path, settings.AdminPath+"/") {
 			s.serveAdminPage(w, r)
 			return
 		}
