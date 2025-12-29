@@ -4,12 +4,13 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 
+	"l2h/internal/config"
+	"l2h/internal/logger"
 	"l2h/internal/serverb"
 )
 
@@ -32,9 +33,40 @@ func main() {
 		os.Exit(0)
 	}
 
+	// 加载配置（简化处理，主要使用命令行参数）
+	cfg := config.Default()
+
+	// 初始化日志系统
+	logLevel := logger.INFO
+	if cfg.ServerB.LogLevel != "" {
+		levelMap := map[string]logger.Level{
+			"DEBUG": logger.DEBUG,
+			"INFO":  logger.INFO,
+			"WARN":  logger.WARN,
+			"ERROR": logger.ERROR,
+			"FATAL": logger.FATAL,
+		}
+		if level, ok := levelMap[cfg.ServerB.LogLevel]; ok {
+			logLevel = level
+		}
+	}
+
+	var appLogger *logger.Logger
+	var err error
+	if cfg.ServerB.LogFile != "" {
+		appLogger, err = logger.NewFileLogger(logLevel, cfg.ServerB.LogFile)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "初始化日志系统失败: %v\n", err)
+			os.Exit(1)
+		}
+		defer appLogger.Close()
+	} else {
+		appLogger = logger.New(logLevel, os.Stdout, "")
+	}
+
 	// 确保数据目录存在
 	if err := os.MkdirAll(*dataDir, 0755); err != nil {
-		log.Fatalf("创建数据目录失败: %v", err)
+		appLogger.Fatal("创建数据目录失败: %v", err)
 	}
 
 	// 数据库文件路径
@@ -45,7 +77,7 @@ func main() {
 	if *showAdminInfo {
 		info, err := manager.GetAdminInfo()
 		if err != nil {
-			log.Fatalf("获取管理信息失败: %v", err)
+			appLogger.Fatal("获取管理信息失败: %v", err)
 		}
 		fmt.Printf("管理页面端口: %d\n", *port)
 		fmt.Printf("用户名: %s\n", info.Username)
@@ -56,7 +88,7 @@ func main() {
 	if *list {
 		bindings, err := manager.ListBindings()
 		if err != nil {
-			log.Fatalf("获取绑定列表失败: %v", err)
+			appLogger.Fatal("获取绑定列表失败: %v", err)
 		}
 		if len(bindings) == 0 {
 			fmt.Println("当前没有绑定的路径")
@@ -76,7 +108,7 @@ func main() {
 	if *add != "" {
 		parts := strings.SplitN(*add, ":", 2)
 		if len(parts) < 1 {
-			log.Fatalf("格式错误，应为 path:password")
+			appLogger.Fatal("格式错误，应为 path:password")
 		}
 		path := parts[0]
 		password := ""
@@ -86,7 +118,7 @@ func main() {
 
 		// 检查敏感单词
 		if containsSensitiveWord(path) {
-			log.Fatalf("路径包含敏感单词，禁止使用")
+			appLogger.Fatal("路径包含敏感单词，禁止使用")
 		}
 
 		// 提示输入端口
@@ -94,16 +126,16 @@ func main() {
 		reader := bufio.NewReader(os.Stdin)
 		portStr, err := reader.ReadString('\n')
 		if err != nil {
-			log.Fatalf("读取输入失败: %v", err)
+			appLogger.Fatal("读取输入失败: %v", err)
 		}
 		portStr = strings.TrimSpace(portStr)
 		portNum, err := strconv.Atoi(portStr)
 		if err != nil {
-			log.Fatalf("无效的端口号: %v", err)
+			appLogger.Fatal("无效的端口号: %v", err)
 		}
 
 		if err := manager.AddBinding(path, portNum, password); err != nil {
-			log.Fatalf("添加绑定失败: %v", err)
+			appLogger.Fatal("添加绑定失败: %v", err)
 		}
 		fmt.Printf("成功添加绑定: %s -> %d\n", path, portNum)
 		os.Exit(0)
@@ -111,7 +143,7 @@ func main() {
 
 	if *delete > 0 {
 		if err := manager.DeleteBinding(*delete); err != nil {
-			log.Fatalf("删除绑定失败: %v", err)
+			appLogger.Fatal("删除绑定失败: %v", err)
 		}
 		fmt.Printf("成功删除绑定编号: %d\n", *delete)
 		os.Exit(0)
@@ -120,19 +152,20 @@ func main() {
 	if *server != "" {
 		parts := strings.SplitN(*server, ":", 2)
 		if len(parts) != 2 {
-			log.Fatalf("格式错误，应为 server.com:apikey")
+			appLogger.Fatal("格式错误，应为 server.com:apikey")
 		}
 		if err := manager.SetServerInfo(parts[0], parts[1]); err != nil {
-			log.Fatalf("设置服务器信息失败: %v", err)
+			appLogger.Fatal("设置服务器信息失败: %v", err)
 		}
 		fmt.Printf("成功设置服务器信息: %s\n", parts[0])
 		os.Exit(0)
 	}
 
 	// 如果没有指定任何命令，启动服务
+	appLogger.Info("启动服务器B，端口: %d, 数据库: %s", *port, dbPath)
 	srv := serverb.NewServer(*port, dbPath)
 	if err := srv.Start(); err != nil {
-		log.Fatalf("启动服务器失败: %v", err)
+		appLogger.Fatal("启动服务器失败: %v", err)
 	}
 }
 

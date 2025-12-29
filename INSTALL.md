@@ -116,6 +116,41 @@ echo 'export PATH=$HOME/.local/bin:$PATH' >> ~/.bashrc
 source ~/.bashrc
 ```
 
+### "Not: command not found" 错误
+
+如果运行 `l2h-s` 或 `l2h-c` 时出现 `Not: command not found` 错误，这通常表示：
+
+1. **下载的文件是错误页面**：GitHub Releases 中可能没有对应版本的二进制文件
+2. **网络问题**：下载过程中出现了错误，但脚本没有正确检测到
+
+**解决方法**：
+
+1. **检查是否有可用的 Release**：
+   ```bash
+   curl -s https://api.github.com/repos/Kaiyuan/l2h/releases/latest
+   ```
+   如果返回 404，说明还没有创建任何 Release。
+
+2. **从源码编译**（推荐）：
+   ```bash
+   git clone https://github.com/Kaiyuan/l2h.git
+   cd l2h
+   make build
+   sudo cp bin/l2h-s /usr/local/bin/l2h-s
+   sudo cp bin/l2h-c /usr/local/bin/l2h-c
+   sudo chmod +x /usr/local/bin/l2h-s
+   sudo chmod +x /usr/local/bin/l2h-c
+   ```
+
+3. **手动下载并验证**：
+   ```bash
+   # 检查下载的文件类型
+   file /usr/local/bin/l2h-s
+   # 如果显示 "ASCII text" 或 "HTML"，说明下载的是错误页面
+   # 需要删除并重新安装
+   sudo rm /usr/local/bin/l2h-s /usr/local/bin/l2h-c
+   ```
+
 ## 支持
 
 如有问题，请访问 [GitHub Issues](https://github.com/Kaiyuan/l2h/issues)

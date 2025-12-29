@@ -97,10 +97,45 @@ download_file() {
     local output=$2
     
     if [[ "$DOWNLOAD_CMD" == *"wget"* ]]; then
-        wget -q "$url" -O "$output" || error "下载失败: $url"
+        # 使用 wget 下载，检查退出码和文件大小
+        if ! wget -q "$url" -O "$output" 2>&1; then
+            error "下载失败: $url"
+        fi
+        # wget 在 404 时仍会创建文件（包含错误页面），需要检查
+        if [ ! -s "$output" ]; then
+            error "下载的文件为空: $output"
+        fi
     else
-        curl -sL "$url" -o "$output" || error "下载失败: $url"
+        # 使用 curl 下载，检查 HTTP 状态码
+        local http_code=$(curl -sL -o "$output" -w "%{http_code}" "$url")
+        if [ "$http_code" != "200" ]; then
+            rm -f "$output"
+            error "下载失败: $url (HTTP $http_code)。请检查 GitHub Releases 是否存在对应版本。"
+        fi
+        if [ ! -s "$output" ]; then
+            error "下载的文件为空: $output"
+        fi
     fi
+    
+    # 检查文件类型（应该是二进制文件，不应该是文本或HTML）
+    if command -v file &> /dev/null; then
+        local file_type=$(file -b "$output")
+        if [[ "$file_type" == *"text"* ]] || [[ "$file_type" == *"HTML"* ]] || [[ "$file_type" == *"ASCII"* ]]; then
+            # 检查文件内容是否包含常见的错误信息
+            if head -n 1 "$output" | grep -qE "(Not Found|404|<!DOCTYPE|<html|Repository)"; then
+                error "下载的文件是错误页面，不是二进制文件。文件类型: $file_type。请检查 GitHub Releases 是否存在对应版本。"
+            fi
+            error "下载的文件不是二进制文件: $file_type"
+        fi
+    fi
+    
+    # 检查文件大小（二进制文件应该至少几KB）
+    local file_size=$(stat -c%s "$output" 2>/dev/null || stat -f%z "$output" 2>/dev/null)
+    if [ "$file_size" -lt 1000 ]; then
+        error "下载的文件太小，可能不是有效的二进制文件: $output (${file_size} bytes)"
+    fi
+    
+    info "文件下载成功: $output (${file_size} bytes)"
 }
 
 # 验证文件
@@ -175,6 +210,22 @@ main() {
     #verify_file "l2h-s" "l2h-s.sha256"
     #verify_file "l2h-c" "l2h-c.sha256"
     
+    # 验证下载的文件是有效的二进制文件
+    info "验证下载的文件..."
+    if ! command -v file &> /dev/null; then
+        warn "无法使用 file 命令验证文件类型，跳过验证"
+    else
+        local s_type=$(file -b l2h-s)
+        local c_type=$(file -b l2h-c)
+        if [[ "$s_type" == *"text"* ]] || [[ "$s_type" == *"HTML"* ]] || [[ "$s_type" == *"ASCII"* ]]; then
+            error "l2h-s 不是有效的二进制文件: $s_type"
+        fi
+        if [[ "$c_type" == *"text"* ]] || [[ "$c_type" == *"HTML"* ]] || [[ "$c_type" == *"ASCII"* ]]; then
+            error "l2h-c 不是有效的二进制文件: $c_type"
+        fi
+        info "文件类型验证通过"
+    fi
+    
     # 安装文件
     info "安装到 $INSTALL_DIR..."
     sudo mkdir -p "$INSTALL_DIR"
@@ -185,6 +236,14 @@ main() {
     
     # 验证安装
     if [ -x "$INSTALL_DIR/l2h-s" ] && [ -x "$INSTALL_DIR/l2h-c" ]; then
+        # 尝试运行验证（检查是否是有效的可执行文件）
+        if ! "$INSTALL_DIR/l2h-s" --help &>/dev/null && ! "$INSTALL_DIR/l2h-s" --version &>/dev/null; then
+            # 如果 --help 和 --version 都失败，检查文件内容
+            if head -n 1 "$INSTALL_DIR/l2h-s" | grep -q "Not Found\|404\|<!DOCTYPE\|<html"; then
+                error "安装的文件是错误页面，不是有效的二进制文件。请检查 GitHub Releases 是否存在对应版本。"
+            fi
+        fi
+        
         echo ""
         echo "=========================================="
         info "安装成功！"

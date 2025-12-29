@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"l2h/internal/crypto"
 	"l2h/internal/webrtc"
 )
 
@@ -65,8 +66,20 @@ func (s *Server) handleRoot(w http.ResponseWriter, r *http.Request) {
 		if dbPath.Password != "" {
 			// 检查是否已认证
 			cookie, err := r.Cookie("l2h_auth_" + path)
-			if err != nil || cookie.Value != dbPath.Password {
+			if err != nil || cookie.Value == "" {
 				// 显示密码输入页面
+				s.servePasswordPage(w, r, path)
+				return
+			}
+			// 验证cookie中的密码（支持哈希和明文）
+			valid := false
+			if crypto.IsHashed(dbPath.Password) {
+				valid, _ = crypto.VerifyPassword(cookie.Value, dbPath.Password)
+			} else {
+				// 向后兼容
+				valid = cookie.Value == dbPath.Password
+			}
+			if !valid {
 				s.servePasswordPage(w, r, path)
 				return
 			}
@@ -190,14 +203,15 @@ func (s *Server) handleGetAPIKeys(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleGenerateAPIKey(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		Name string `json:"name"`
+		Name         string `json:"name"`
+		ExpiresInDays int    `json:"expires_in_days"` // 0 表示永不过期
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	key, err := s.db.GenerateAPIKey(req.Name)
+	key, err := s.db.GenerateAPIKey(req.Name, req.ExpiresInDays)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -258,7 +272,25 @@ func (s *Server) handleAuth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if dbPath.Password != req.Password {
+	// 验证密码（支持哈希和明文，用于向后兼容）
+	valid := false
+	if crypto.IsHashed(dbPath.Password) {
+		// 使用哈希验证
+		valid, _ = crypto.VerifyPassword(req.Password, dbPath.Password)
+	} else {
+		// 向后兼容：如果是明文，直接比较
+		valid = dbPath.Password == req.Password
+		// 如果匹配，更新为哈希格式
+		if valid {
+			hashed, err := crypto.HashPassword(req.Password)
+			if err == nil {
+				// 更新数据库中的密码为哈希格式
+				s.db.UpdatePathPassword(dbPath.ID, hashed)
+			}
+		}
+	}
+
+	if !valid {
 		writeError(w, http.StatusUnauthorized, "Invalid password")
 		return
 	}

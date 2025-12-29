@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"time"
 
+	"l2h/internal/crypto"
+
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -90,9 +92,19 @@ func (d *Database) GetAdminInfo() (*AdminInfo, error) {
 }
 
 func (d *Database) SetAdminInfo(username, password string) error {
+	// 如果密码不是哈希格式，则进行哈希
+	hashedPassword := password
+	if !crypto.IsHashed(password) {
+		hashed, err := crypto.HashPassword(password)
+		if err != nil {
+			return err
+		}
+		hashedPassword = hashed
+	}
+
 	_, err := d.db.Exec(
 		"INSERT OR REPLACE INTO admin (id, username, password) VALUES (1, ?, ?)",
-		username, password)
+		username, hashedPassword)
 	return err
 }
 
@@ -127,9 +139,19 @@ func (d *Database) GetBindings() ([]*Binding, error) {
 }
 
 func (d *Database) AddBinding(path string, port int, password string) error {
+	// 如果密码不是哈希格式，则进行哈希
+	hashedPassword := password
+	if password != "" && !crypto.IsHashed(password) {
+		hashed, err := crypto.HashPassword(password)
+		if err != nil {
+			return err
+		}
+		hashedPassword = hashed
+	}
+
 	_, err := d.db.Exec(
 		"INSERT INTO bindings (path, port, password) VALUES (?, ?, ?)",
-		path, port, password)
+		path, port, hashedPassword)
 	return err
 }
 
