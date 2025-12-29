@@ -195,7 +195,7 @@ main() {
     cd "$TEMP_DIR"
     
     # 下载文件
-    BASE_URL="https://github.com/Kaiyuan/l2h/releases/download/v${VERSION}"
+    BASE_URL="https://github.com/Kaiyuan/l2h/releases/download/${VERSION}"
     
     info "下载 l2h-s..."
     download_file "${BASE_URL}/l2h-s-${ARCH}" "l2h-s"
