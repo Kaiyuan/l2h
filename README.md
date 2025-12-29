@@ -72,7 +72,7 @@ curl -fsSL https://raw.githubusercontent.com/Kaiyuan/l2h/main/install.sh | bash
 l2h-s
 
 # 指定端口
-l2h-s --port 8080
+l2h-s --port 9090
 
 # 指定数据目录
 l2h-s --data-dir /var/lib/l2h

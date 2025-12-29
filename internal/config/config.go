@@ -87,7 +87,7 @@ func Save(configPath string, cfg *Config) error {
 func Default() *Config {
 	return &Config{
 		ServerA: ServerAConfig{
-			Port:     8080,
+			Port:     55080,
 			DBPath:   "l2h-s.db",
 			LogFile:  "logs/l2h-s.log",
 			LogLevel: "INFO",
