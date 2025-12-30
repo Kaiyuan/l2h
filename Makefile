@@ -1,7 +1,11 @@
 .PHONY: build build-windows build-linux build-darwin clean install frontend
 
 frontend:
-	cd web/admin && npm run build
+	@if ! command -v npm >/dev/null 2>&1; then \
+		echo "Error: npm is not installed. Please install Node.js/npm to build the frontend."; \
+		exit 1; \
+	fi
+	cd web/admin && npm install && npm run build
 	rm -rf internal/servera/static
 	mkdir -p internal/servera/static
 	cp -r web/admin/dist/* internal/servera/static/

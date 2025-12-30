@@ -60,7 +60,14 @@ func (s *Server) handleRoot(w http.ResponseWriter, r *http.Request) {
 	// 检查是否是管理路径
 	settings, err := s.db.GetSettings()
 	if err == nil && settings != nil {
-		if path == settings.AdminPath || strings.HasPrefix(path, settings.AdminPath+"/") {
+		// 精确匹配 adminPath，重定向到 adminPath/
+		if path == settings.AdminPath {
+			http.Redirect(w, r, "/"+path+"/", http.StatusMovedPermanently)
+			return
+		}
+
+		// 匹配 adminPath/ 前缀
+		if strings.HasPrefix(path, settings.AdminPath+"/") {
 			s.serveAdminPage(w, r)
 			return
 		}
@@ -401,6 +408,24 @@ func (s *Server) serveAdminPage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	defer f.Close()
+
+	// 特殊处理 index.html，注入 L2H_ADMIN_BASE
+	if fpath == "index.html" {
+		content, err := io.ReadAll(f)
+		if err != nil {
+			utils.WriteError(w, http.StatusInternalServerError, "Failed to read admin index")
+			return
+		}
+
+		// 动态注入 base path 脚本
+		script := fmt.Sprintf("<script>window.L2H_ADMIN_BASE = '/%s/';</script>", adminPath)
+		html := strings.Replace(string(content), "<head>", "<head>"+script, 1)
+
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+		w.Write([]byte(html))
+		return
+	}
 
 	// 获取文件信息以设置 Content-Type
 	stat, _ := f.Stat()
